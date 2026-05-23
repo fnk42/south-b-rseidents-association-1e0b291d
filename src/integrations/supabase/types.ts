@@ -14,7 +14,121 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      committee_members: {
+        Row: {
+          created_at: string
+          email: string | null
+          estate_id: string
+          full_name: string
+          id: string
+          phone: string | null
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          estate_id: string
+          full_name: string
+          id?: string
+          phone?: string | null
+          role: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          estate_id?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "committee_members_estate_id_fkey"
+            columns: ["estate_id"]
+            isOneToOne: false
+            referencedRelation: "estates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estates: {
+        Row: {
+          created_at: string
+          estate_name: string
+          id: string
+          number_of_houses: number | null
+          registration_status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estate_name: string
+          id?: string
+          number_of_houses?: number | null
+          registration_status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          estate_name?: string
+          id?: string
+          number_of_houses?: number | null
+          registration_status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      residents: {
+        Row: {
+          created_at: string
+          email: string | null
+          estate_id: string
+          full_name: string
+          house_number: string
+          id: string
+          occupancy: string
+          owner_email: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          estate_id: string
+          full_name: string
+          house_number: string
+          id?: string
+          occupancy: string
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          estate_id?: string
+          full_name?: string
+          house_number?: string
+          id?: string
+          occupancy?: string
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residents_estate_id_fkey"
+            columns: ["estate_id"]
+            isOneToOne: false
+            referencedRelation: "estates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
