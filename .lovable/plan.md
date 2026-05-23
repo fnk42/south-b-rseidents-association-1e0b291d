@@ -1,58 +1,44 @@
-# South B Residents Association — Estate Directory
+# Estate detail page — `/estate/:id`
 
-The database is already provisioned (estates, committee_members, residents with the schema you specified and open RLS for the MVP). This plan covers the landing page.
+New route: `src/routes/estate.$id.tsx` (no other files change).
 
-## What I'll build
+## Layout
 
-### `src/routes/__root.tsx` (small edit)
-Add Google Fonts links for **DM Sans** (UI) and **Source Serif 4** (headings).
+- **Top bar**: `← Back to Directory` link → `/`.
+- **Estate header card** (white, gold accent on left edge):
+  - Estate name as large Source Serif heading
+  - Status badge inline (same pill style as the directory)
+  - Subtitle: `X houses · Y committee members` (auto-pluralized; "—" when house count is null)
+  - `Edit Estate Info` button on the right
+- **Inline edit form** (collapsible, gold-bordered card): `estate_name`, `number_of_houses`, `registration_status` dropdown. Save / Cancel. On save → update DB, refetch, collapse.
+- **Tabs** (Committee / Residents) with a 2px gold `#D4A017` underline under the active tab. Tab labels include live counts. Residents tab shows a "Coming next" placeholder for this turn (the spec only details Committee behaviour).
 
-### `src/routes/index.tsx` (full rewrite — replaces placeholder)
+## Committee tab
 
-**Header** (sticky, dark green `#1B3A2D`, 3px gold `#D4A017` bottom border)
-- Gold rounded square with "SB" monogram
-- Title "South B Residents Association" (Source Serif)
-- Subtitle "Building community, one estate at a time"
+- Helper sentence: "Committee members managing this estate. Add as many or as few as needed."
+- `+ Add Member` button → toggles inline gold-bordered form: `full_name*`, `role*` (Chairperson / Vice Chairperson / Secretary / Treasurer / Member), `phone`, `email`. Save / Cancel.
+- **Member rows**:
+  - Avatar circle with initials. Background = dark green `#1B3A2D` for Chairperson/Vice Chairperson, neutral grey for others. White initials.
+  - Name (bold) + role label below. Role label coloured gold `#D4A017` for Chairperson, muted grey for everyone else.
+  - Phone and email shown as small muted text (with `mailto:` / `tel:` links when present).
+  - Per-row `Edit` and `Delete` icon buttons (pencil + trash, lucide-react — no emoji).
+- **Edit a member**: clicking Edit swaps that row in-place for the same form layout, Save / Cancel.
+- **Delete a member**: opens a confirmation dialog ("Remove {name} from the committee? This cannot be undone.") with Cancel / Delete buttons. Delete is destructive-red.
+- **Empty state**: centered card with a lucide `Users` icon in a soft circle (NOT an emoji — matches the user's "no WhatsApp-looking emoticons" note), heading "No committee members added yet", subtext, and a primary `+ Add First Member` button that opens the same add form.
 
-**Hero**
-- "South B Estate Directory" (Source Serif, large)
-- Short community paragraph
+## Landing-page integration
+Already wired — the `/` query selects `committee_members(full_name, role)` and shows the Chairperson. As soon as a Chairperson is saved on this detail page, the directory's React Query cache is invalidated on navigation back, so the chair name appears on the row.
 
-**Metrics strip** (horizontal bar of stat tiles)
-- Total estates (dark-green tile, white text)
-- Total houses
-- Registered count (green dot)
-- In Progress count (amber dot)
-- Not Registered count (red dot)
+## Iconography rule (project-wide)
+No emoji in UI. All glyphs come from `lucide-react`: `ArrowLeft`, `Pencil`, `Trash2`, `Plus`, `Users`, `Mail`, `Phone`, `X`. Renders crisp at any size and matches the existing landing page.
 
-**Filter tabs** (pill buttons with live counts)
-`All (N)` · `Registered (N)` · `In Progress (N)` · `Not Registered (N)` — active pill = dark green bg / white text; inactive = white / dark text / subtle border.
+## Data
+- One query: `supabase.from('estates').select('*, committee_members(*)').eq('id', id).single()` — keyed `['estate', id]`.
+- Mutations: update estate, insert/update/delete `committee_members`. Each mutation invalidates `['estate', id]` and `['estates']` so the directory's chair name stays in sync.
+- Loading → skeleton block. Missing id → "Estate not found" with back link.
 
-**Add Estate**
-- `+ Add Estate` button toggles an inline card (white, gold `#D4A017` border)
-- Fields: estate name (required), number of houses (optional), status dropdown defaulting to "Not Registered"
-- Save → inserts into `estates`, refetches list, collapses form
+## Out of scope (this turn)
+- Residents tab CRUD (tab exists with count + placeholder, full UI next turn).
+- Deleting the estate itself.
 
-**Estate directory list**
-- Each row: status dot, estate name (bold), house count, chairperson name (or italic "No committee details yet"), status badge, chevron
-- Whole row is a link to `/estate/$id` (route doesn't exist yet — clicking shows the default 404 for now; we'll add the detail page next)
-
-**Footer**
-- "© 2026 South B Residents Association · Nairobi, Kenya"
-
-### Data fetching
-- Use `@tanstack/react-query` + the browser `supabase` client (open RLS allows anon read/write)
-- One query: estates with their committee_members (single round trip via `select('*, committee_members(full_name, role)')`)
-- Derive counts client-side; filter list client-side
-
-### Design tokens
-- Colors are taken straight from your spec (`#1B3A2D`, `#D4A017`, `#FAFAF7`, `#e5e2db`, status greens/ambers/reds) and applied inline / via Tailwind arbitrary values — no need to rework the global theme tokens for this single-page MVP
-- Cards: white bg, 1px `#e5e2db` border, 14px radius
-- DM Sans for UI text, Source Serif 4 for the page title and hero heading
-
-## Out of scope (for this turn)
-- `/estate/:id` detail page (committee + residents management)
-- Edit/delete of estates
-- Auth (table policies are open per the MVP spec)
-
-Ready to switch to build mode and ship this.
+Ready to build.
