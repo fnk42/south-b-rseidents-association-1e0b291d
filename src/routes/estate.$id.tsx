@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ResidentsTab } from "@/components/estate/ResidentsTab";
 
 export const Route = createFileRoute("/estate/$id")({
   head: () => ({
@@ -135,7 +136,7 @@ function EstatePage() {
   }
 
   const committee = data.committee_members ?? [];
-  const residentCount = 0; // residents tab coming soon
+  const [residentCount, setResidentCount] = useState(0);
 
   const onEstateSaved = () => {
     setEditingEstate(false);
@@ -207,17 +208,11 @@ function EstatePage() {
       {tab === "committee" ? (
         <CommitteeTab estateId={id} committee={committee} />
       ) : (
-        <div
-          className="p-10 text-center text-sm"
-          style={{
-            backgroundColor: "white",
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 14,
-            color: "#888",
-          }}
-        >
-          Resident management is coming next.
-        </div>
+        <ResidentsTab
+          estateId={id}
+          totalHouses={data.number_of_houses}
+          onCountChange={setResidentCount}
+        />
       )}
     </Shell>
   );
