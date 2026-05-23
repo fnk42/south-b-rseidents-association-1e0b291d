@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,11 +72,13 @@ export function ResidentsTab({
       const { data, error } = await supabase
         .from("residents")
         .select("*")
-        .eq("estate_id", estateId)
-        .order("house_number", { ascending: true });
+        .eq("estate_id", estateId);
       if (error) throw error;
-      onCountChange?.(data?.length ?? 0);
-      return (data ?? []) as Resident[];
+      const list = ((data ?? []) as Resident[]).slice().sort((a, b) =>
+        a.house_number.localeCompare(b.house_number, undefined, { numeric: true, sensitivity: "base" })
+      );
+      onCountChange?.(list.length);
+      return list;
     },
   });
 
@@ -119,8 +122,10 @@ export function ResidentsTab({
     },
     onSuccess: () => {
       setConfirmDelete(null);
+      toast.success("Resident removed");
       invalidate();
     },
+    onError: (e: Error) => toast.error(`Could not remove: ${e.message}`),
   });
 
   const onFileChosen = async (file: File) => {
@@ -192,6 +197,14 @@ export function ResidentsTab({
           }
         }
         setImportBanner({ ok: inserted, errors });
+        if (inserted > 0) {
+          toast.success(
+            `CSV import complete: ${inserted} resident${inserted === 1 ? "" : "s"} added` +
+              (errors.length ? ` · ${errors.length} skipped` : "")
+          );
+        } else if (errors.length) {
+          toast.error("CSV import failed — see details");
+        }
         invalidate();
       },
       error: (err) => {
@@ -289,6 +302,7 @@ export function ResidentsTab({
           onCancel={() => setAdding(false)}
           onSaved={() => {
             setAdding(false);
+            toast.success("Resident added");
             invalidate();
           }}
         />
@@ -355,6 +369,7 @@ export function ResidentsTab({
                           onCancel={() => setEditingId(null)}
                           onSaved={() => {
                             setEditingId(null);
+                            toast.success("Resident updated");
                             invalidate();
                           }}
                         />

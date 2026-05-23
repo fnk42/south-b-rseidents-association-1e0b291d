@@ -1,8 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -50,6 +61,7 @@ interface Estate {
   number_of_houses: number | null;
   registration_status: Status;
   committee_members: CommitteeMember[];
+  residents: { count: number }[];
 }
 
 const STATUSES: Status[] = ["Registered", "In Progress", "Not Registered"];
@@ -63,7 +75,7 @@ function statusColor(s: Status) {
 async function fetchEstates(): Promise<Estate[]> {
   const { data, error } = await supabase
     .from("estates")
-    .select("id, estate_name, number_of_houses, registration_status, committee_members(full_name, role)")
+    .select("id, estate_name, number_of_houses, registration_status, committee_members(full_name, role), residents(count)")
     .order("estate_name", { ascending: true });
   if (error) throw error;
   return (data ?? []) as unknown as Estate[];
@@ -78,6 +90,20 @@ function Index() {
 
   const [filter, setFilter] = useState<"All" | Status>("All");
   const [showAdd, setShowAdd] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Estate | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (estateId: string) => {
+      const { error } = await supabase.from("estates").delete().eq("id", estateId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Estate deleted");
+      setConfirmDelete(null);
+      qc.invalidateQueries({ queryKey: ["estates"] });
+    },
+    onError: (e: Error) => toast.error(`Could not delete: ${e.message}`),
+  });
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {
@@ -154,7 +180,7 @@ function Index() {
 
           {/* Metrics strip */}
           <section
-            className="mb-8 grid grid-cols-2 md:grid-cols-5 overflow-hidden"
+            className="mb-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 overflow-hidden"
             style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, backgroundColor: "white" }}
           >
             <MetricTile
@@ -169,8 +195,8 @@ function Index() {
           </section>
 
           {/* Filter tabs + add */}
-          <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap gap-2">
+          <section className="mb-5 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3">
+            <div className="flex flex-wrap gap-2 overflow-x-auto">
               <FilterPill label={`All (${counts.All})`} active={filter === "All"} onClick={() => setFilter("All")} />
               {STATUSES.map((s) => (
                 <FilterPill
@@ -183,7 +209,7 @@ function Index() {
             </div>
             <button
               onClick={() => setShowAdd((v) => !v)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-colors self-start sm:self-auto"
               style={{
                 backgroundColor: COLORS.green,
                 color: "white",
@@ -199,6 +225,7 @@ function Index() {
               onCancel={() => setShowAdd(false)}
               onSaved={() => {
                 setShowAdd(false);
+                toast.success("Estate added");
                 qc.invalidateQueries({ queryKey: ["estates"] });
               }}
             />
@@ -221,10 +248,12 @@ function Index() {
               <ul>
                 {visible.map((e, i) => {
                   const chair = e.committee_members?.find((m) => m.role === "Chairperson");
+                  const residentCount = e.residents?.[0]?.count ?? 0;
                   return (
                     <li
                       key={e.id}
                       style={{ borderTop: i === 0 ? "none" : `1px solid ${COLORS.border}` }}
+                      className="relative group"
                     >
                       <Link
                         to="/estate/$id"
@@ -251,6 +280,9 @@ function Index() {
                                 {e.number_of_houses} {e.number_of_houses === 1 ? "house" : "houses"}
                               </span>
                             )}
+                            <span className="text-sm" style={{ color: "#9a978f" }}>
+                              · {residentCount} {residentCount === 1 ? "resident" : "residents"}
+                            </span>
                           </div>
                           <div className="text-sm mt-0.5">
                             {chair ? (
@@ -267,6 +299,19 @@ function Index() {
                         <StatusBadge status={e.registration_status} />
                         <ChevronRight size={18} style={{ color: "#bbb" }} />
                       </Link>
+                      <button
+                        type="button"
+                        aria-label={`Delete ${e.estate_name}`}
+                        onClick={(ev) => {
+                          ev.preventDefault();
+                          ev.stopPropagation();
+                          setConfirmDelete(e);
+                        }}
+                        className="absolute right-12 top-1/2 -translate-y-1/2 p-2 rounded-md opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity hover:bg-black/[0.05]"
+                        style={{ color: COLORS.notRegistered }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </li>
                   );
                 })}
@@ -282,6 +327,29 @@ function Index() {
       >
         © 2026 South B Residents Association · Nairobi, Kenya
       </footer>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {confirmDelete?.estate_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove all committee members and residents. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(ev) => {
+                ev.preventDefault();
+                if (confirmDelete) deleteMutation.mutate(confirmDelete.id);
+              }}
+              style={{ backgroundColor: COLORS.notRegistered, color: "white" }}
+            >
+              {deleteMutation.isPending ? "Deleting…" : "Delete estate"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
