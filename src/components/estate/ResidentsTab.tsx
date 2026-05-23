@@ -302,6 +302,7 @@ export function ResidentsTab({
           onCancel={() => setAdding(false)}
           onSaved={() => {
             setAdding(false);
+            toast.success("Resident added");
             invalidate();
           }}
         />
@@ -368,6 +369,7 @@ export function ResidentsTab({
                           onCancel={() => setEditingId(null)}
                           onSaved={() => {
                             setEditingId(null);
+                            toast.success("Resident updated");
                             invalidate();
                           }}
                         />
