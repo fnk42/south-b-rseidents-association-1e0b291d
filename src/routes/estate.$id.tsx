@@ -141,6 +141,7 @@ function EstatePage() {
 
   const onEstateSaved = () => {
     setEditingEstate(false);
+    toast.success("Estate updated");
     qc.invalidateQueries({ queryKey: ["estate", id] });
     qc.invalidateQueries({ queryKey: ["estates"] });
   };
@@ -371,8 +372,10 @@ function CommitteeTab({ estateId, committee }: { estateId: string; committee: Co
     },
     onSuccess: () => {
       setConfirmDelete(null);
+      toast.success("Committee member removed");
       invalidate();
     },
+    onError: (e: Error) => toast.error(`Could not remove: ${e.message}`),
   });
 
   if (committee.length === 0 && !adding) {
@@ -428,6 +431,7 @@ function CommitteeTab({ estateId, committee }: { estateId: string; committee: Co
           onCancel={() => setAdding(false)}
           onSaved={() => {
             setAdding(false);
+            toast.success("Committee member added");
             invalidate();
           }}
         />
@@ -456,6 +460,7 @@ function CommitteeTab({ estateId, committee }: { estateId: string; committee: Co
                       onCancel={() => setEditingId(null)}
                       onSaved={() => {
                         setEditingId(null);
+                        toast.success("Committee member updated");
                         invalidate();
                       }}
                     />
