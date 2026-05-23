@@ -1,44 +1,36 @@
-# Estate detail page — `/estate/:id`
+# Plan: Mark app as Demo + Document accepted security posture
 
-New route: `src/routes/estate.$id.tsx` (no other files change).
+## Goal
+Make it unmistakably clear that this is a **demo/MVP** and that the next iteration requires **Option 1 (full authentication + role-based access control)** to comply with **Kenya's Data Protection Act**.
 
-## Layout
+## Changes
 
-- **Top bar**: `← Back to Directory` link → `/`.
-- **Estate header card** (white, gold accent on left edge):
-  - Estate name as large Source Serif heading
-  - Status badge inline (same pill style as the directory)
-  - Subtitle: `X houses · Y committee members` (auto-pluralized; "—" when house count is null)
-  - `Edit Estate Info` button on the right
-- **Inline edit form** (collapsible, gold-bordered card): `estate_name`, `number_of_houses`, `registration_status` dropdown. Save / Cancel. On save → update DB, refetch, collapse.
-- **Tabs** (Committee / Residents) with a 2px gold `#D4A017` underline under the active tab. Tab labels include live counts. Residents tab shows a "Coming next" placeholder for this turn (the spec only details Committee behaviour).
+### 1. Demo Banner (Landing Page + Estate Detail)
+Add a **fixed or persistent banner** at the top of both pages with:
+- Label: "DEMO / MVP"
+- Message: "This is a public demonstration. The next release will require secure login and role-based access to protect resident and committee data, in compliance with Kenya's Data Protection Act."
+- Color: amber/gold warning tone (matching the existing green/gold palette, but clearly distinct as a warning)
+- Dismissible on the landing page, but a shorter persistent strip remains on the estate detail page
 
-## Committee tab
+### 2. Footer update (Landing Page)
+Add a small line below the existing footer:
+"Demo build. All data is publicly visible for testing purposes. Production deployment requires authentication and access controls per the Data Protection Act, 2019."
 
-- Helper sentence: "Committee members managing this estate. Add as many or as few as needed."
-- `+ Add Member` button → toggles inline gold-bordered form: `full_name*`, `role*` (Chairperson / Vice Chairperson / Secretary / Treasurer / Member), `phone`, `email`. Save / Cancel.
-- **Member rows**:
-  - Avatar circle with initials. Background = dark green `#1B3A2D` for Chairperson/Vice Chairperson, neutral grey for others. White initials.
-  - Name (bold) + role label below. Role label coloured gold `#D4A017` for Chairperson, muted grey for everyone else.
-  - Phone and email shown as small muted text (with `mailto:` / `tel:` links when present).
-  - Per-row `Edit` and `Delete` icon buttons (pencil + trash, lucide-react — no emoji).
-- **Edit a member**: clicking Edit swaps that row in-place for the same form layout, Save / Cancel.
-- **Delete a member**: opens a confirmation dialog ("Remove {name} from the committee? This cannot be undone.") with Cancel / Delete buttons. Delete is destructive-red.
-- **Empty state**: centered card with a lucide `Users` icon in a soft circle (NOT an emoji — matches the user's "no WhatsApp-looking emoticons" note), heading "No committee members added yet", subtext, and a primary `+ Add First Member` button that opens the same add form.
+### 3. Security Memory Update
+Write a `security--update_memory` document explaining:
+- This is a demo/MVP for a residents association
+- All data is intentionally public for testing
+- Next iteration (Option A) will add: email/password + Google auth, `user_roles` table, `has_role()` security definer, and proper RLS policies scoped to estate committee members
+- Why this is needed: Kenya Data Protection Act requires lawful processing, data minimisation, and security safeguards for personal data (resident phone numbers, emails, landlord contacts)
 
-## Landing-page integration
-Already wired — the `/` query selects `committee_members(full_name, role)` and shows the Chairperson. As soon as a Chairperson is saved on this detail page, the directory's React Query cache is invalidated on navigation back, so the chair name appears on the row.
+### 4. Ignore Remaining Security Findings
+Use `security--manage_security_finding` to ignore the 4 remaining scan findings with the shared reason that this is an intentional demo/MVP and proper access control is planned for the next iteration.
 
-## Iconography rule (project-wide)
-No emoji in UI. All glyphs come from `lucide-react`: `ArrowLeft`, `Pencil`, `Trash2`, `Plus`, `Users`, `Mail`, `Phone`, `X`. Renders crisp at any size and matches the existing landing page.
+---
 
-## Data
-- One query: `supabase.from('estates').select('*, committee_members(*)').eq('id', id).single()` — keyed `['estate', id]`.
-- Mutations: update estate, insert/update/delete `committee_members`. Each mutation invalidates `['estate', id]` and `['estates']` so the directory's chair name stays in sync.
-- Loading → skeleton block. Missing id → "Estate not found" with back link.
-
-## Out of scope (this turn)
-- Residents tab CRUD (tab exists with count + placeholder, full UI next turn).
-- Deleting the estate itself.
-
-Ready to build.
+## Acceptance criteria
+- [ ] A visitor sees the demo banner immediately on load (landing page)
+- [ ] The banner mentions Kenya's Data Protection Act and the need for secure login in the next iteration
+- [ ] Estate detail page also shows a warning strip
+- [ ] All 4 remaining security scan findings are ignored with documented rationale
+- [ ] Security memory is updated
