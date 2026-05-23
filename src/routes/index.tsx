@@ -80,13 +80,20 @@ function Index() {
   const [showAdd, setShowAdd] = useState(false);
 
   const counts = useMemo(() => {
-    const c = { All: estates.length, Registered: 0, "In Progress": 0, "Not Registered": 0 } as Record<string, number>;
+    const c: Record<string, number> = {
+      All: estates.length,
+      Registered: 0,
+      "In Progress": 0,
+      "Not Registered": 0,
+      houses: 0,
+    };
     let houses = 0;
     for (const e of estates) {
       c[e.registration_status] = (c[e.registration_status] ?? 0) + 1;
       houses += e.number_of_houses ?? 0;
     }
-    return { ...c, houses };
+    c.houses = houses;
+    return c;
   }, [estates]);
 
   const visible = filter === "All" ? estates : estates.filter((e) => e.registration_status === filter);
