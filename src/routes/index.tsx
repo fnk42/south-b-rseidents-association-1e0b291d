@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { DemoBanner } from "@/components/DemoBanner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -129,6 +130,7 @@ function Index() {
       className="min-h-screen flex flex-col"
       style={{ backgroundColor: COLORS.bg, fontFamily: "'DM Sans', system-ui, sans-serif", color: "#1d1d1b" }}
     >
+      <DemoBanner />
       {/* Header */}
       <header
         style={{
@@ -325,7 +327,11 @@ function Index() {
         className="py-6 text-center text-sm"
         style={{ color: "#888", borderTop: `1px solid ${COLORS.border}` }}
       >
-        © 2026 South B Residents Association · Nairobi, Kenya
+        <div>© 2026 South B Residents Association · Nairobi, Kenya</div>
+        <div className="mt-2 max-w-2xl mx-auto px-6 text-xs" style={{ color: "#a09b8f" }}>
+          Demo build. All data is publicly visible for testing purposes. Production deployment
+          requires authentication and access controls per Kenya's Data Protection Act, 2019.
+        </div>
       </footer>
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
