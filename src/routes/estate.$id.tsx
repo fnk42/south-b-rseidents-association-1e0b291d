@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ResidentsTab } from "@/components/estate/ResidentsTab";
+import { DemoBanner } from "@/components/DemoBanner";
 
 export const Route = createFileRoute("/estate/$id")({
   head: () => ({
@@ -226,6 +227,7 @@ function EstatePage() {
         className="min-h-screen"
         style={{ backgroundColor: COLORS.bg, fontFamily: "'DM Sans', system-ui, sans-serif", color: "#1d1d1b" }}
       >
+        <DemoBanner compact />
         <header style={{ backgroundColor: COLORS.green, borderBottom: `3px solid ${COLORS.gold}` }}>
           <div className="max-w-5xl mx-auto px-6 py-5 flex items-center gap-4">
             <div
