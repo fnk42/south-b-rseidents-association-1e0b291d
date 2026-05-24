@@ -1,33 +1,33 @@
-## What's actually happening
+## Phase 1 scope
 
-**1. "Anyone signed in sees resident details" — not a bug, but admin scope.**
-Your residents RLS policy is correct: `user_manages_estate(auth.uid(), estate_id)` only returns true for an admin OR an approved committee_member of that specific estate. A second signed-in committee member of Estate A genuinely cannot read Estate B's residents at the database level.
+Open directory for populating estates and their committees. **No auth, no residents.** Auth + residents + role approvals come back in Phase 2.
 
-The reason you're seeing every estate's residents is that the **first user to sign up is auto-promoted to `admin`** (in the `handle_new_user()` trigger), and admins are intentionally allowed to see every estate. You confirmed you want to keep this behavior. No database changes needed.
+## Changes
 
-**2. The "error on first click, fixed by Try again" — real bug.**
-React console error: *"Rendered more hooks than during the previous render"* in `EstatePage`. In `src/routes/estate.$id.tsx`, `useState(0)` for `residentCount` is declared on line 144, **after** the early `return`s for the loading and error states (lines 116–141). 
+### 1. Database RLS (open up for phase 1)
+Migration to make estates + committee_members fully public CRUD, and lock down residents:
 
-- First render: the query is loading → early `return` runs → the `useState` call is never reached → React records N hooks.
-- Second render: data has arrived → component falls through past the early returns → the extra `useState` runs → React sees N+1 hooks and crashes.
-- "Try again" remounts the component; by then the query is cached, so the first render skips the early-return branch — hook count stays consistent and it appears to "self-resolve."
+- **`estates`**: drop existing insert/update/delete policies; add `FOR ALL USING (true) WITH CHECK (true)` so anyone can add, edit, delete.
+- **`committee_members`**: drop manager-scoped insert/update/delete policies; add `FOR ALL USING (true) WITH CHECK (true)` so anyone can add, edit, delete committee members on any estate.
+- **`residents`**: drop all existing policies and add a single deny-all (no policy / `USING (false)`) — table stays in the schema for Phase 2 but is unreadable/unwritable from the app for now.
+- `profiles` and `user_roles` left as-is (harmless — just unused).
 
-## Fix
+### 2. Frontend
+- **`src/routes/index.tsx`** — remove the `isAdmin` gate on Add Estate button, the delete button, and the form. Everyone sees them. Drop the resident count column from each estate row.
+- **`src/routes/estate.$id.tsx`** — remove the Residents tab entirely; the page becomes a single view: estate details + committee. Remove resident-count fetching.
+- **`src/components/estate/ResidentsTab.tsx`** — delete the file.
+- **`src/components/UserMenu.tsx`** — remove or replace with nothing; header no longer shows sign-in. (Keep the file but render `null`, or delete and remove the import from `index.tsx` + `estate.$id.tsx`.) Pick: **delete the file and its imports** for a clean phase 1.
+- **`src/routes/auth.tsx`** and **`src/routes/admin.approvals.tsx`** — delete. Remove from `routeTree.gen.ts` will happen automatically on next build.
+- **`src/hooks/useAuth.tsx`** — delete; remove all `useAuth()` calls (only used for the admin gates we're removing).
+- **`src/routes/__root.tsx`** — remove the `AuthProvider` wrapper if present.
+- Committee management UI on `estate.$id.tsx` already exists for managers — relax it so anyone can add/edit/delete committee members (drop any `canManage` gating there).
 
-### 1. `src/routes/estate.$id.tsx` — restore hook order
-Move every hook call (`useState`, `useQuery`, `useNavigate`, `useAuth`, etc.) to the **top** of `EstatePage`, before any conditional `return`. Specifically, hoist `const [residentCount, setResidentCount] = useState(0);` (currently line 144) above the `isLoading` / `isError` early returns. No other logic changes.
+### 3. Notes for the user
+- Anyone with the link can add/edit/delete estates and committee members during Phase 1. That's the intent.
+- Residents data and the role-approval flow are paused, not deleted — Phase 2 reintroduces auth, the residents tab, and locks editing back down to committee members.
 
-### 2. Small UI clarification (optional, recommended)
-Because admins legitimately see every estate's residents, add a one-line note on the Residents tab when the viewer is admin-only (not a committee member of *this* estate), so it's clear *why* they can see this data. Example, rendered above the residents table when `isAdmin && !approvedEstateIds.includes(estateId)`:
-
-> "You're viewing this as an administrator. Estate committee members only see their own estate."
-
-This requires exposing `isAdmin` / `approvedEstateIds` from `useAuth` into `ResidentsTab` (already available from the hook — just consume it there). Skip this if you'd rather keep the UI unchanged.
-
-## Out of scope
-- No database / RLS changes.
-- No auth-flow changes.
-- No changes to the existing `canManage` gating on Add/Edit/Delete buttons.
-
-## Verification
-After the edit, reload the app, click an estate from the directory on the first try — the page should render the estate header, tabs, and content without the red error screen, and without needing "Try again."
+## Out of scope (Phase 2)
+- Re-enabling sign in / Google auth.
+- Residents tab + RLS scoped to committee members.
+- Admin approvals page.
+- Per-estate edit lock-down.

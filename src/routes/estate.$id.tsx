@@ -23,9 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ResidentsTab } from "@/components/estate/ResidentsTab";
-import { UserMenu } from "@/components/UserMenu";
-import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/estate/$id")({
   head: () => ({
@@ -94,8 +91,7 @@ function EstatePage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const { managesEstate } = useAuth();
-  const canManage = managesEstate(id);
+  const canManage = true;
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["estate", id],
@@ -110,9 +106,7 @@ function EstatePage() {
     },
   });
 
-  const [tab, setTab] = useState<"committee" | "residents">("committee");
   const [editingEstate, setEditingEstate] = useState(false);
-  const [residentCount, setResidentCount] = useState(0);
 
   if (isLoading) {
     return (
@@ -201,26 +195,7 @@ function EstatePage() {
         )}
       </section>
 
-      {/* Tabs */}
-      <div className="mb-5 flex gap-6" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-        <TabButton active={tab === "committee"} onClick={() => setTab("committee")}>
-          Committee ({committee.length})
-        </TabButton>
-        <TabButton active={tab === "residents"} onClick={() => setTab("residents")}>
-          Residents ({residentCount})
-        </TabButton>
-      </div>
-
-      {tab === "committee" ? (
-        <CommitteeTab estateId={id} committee={committee} canManage={canManage} />
-      ) : (
-        <ResidentsTab
-          estateId={id}
-          totalHouses={data.number_of_houses}
-          onCountChange={setResidentCount}
-          canManage={canManage}
-        />
-      )}
+      <CommitteeTab estateId={id} committee={committee} canManage={canManage} />
     </Shell>
   );
 
@@ -255,7 +230,6 @@ function EstatePage() {
               </p>
               <p className="text-xs text-white/70">Building community, one estate at a time</p>
             </div>
-            <UserMenu />
           </div>
         </header>
         <main className="max-w-5xl mx-auto px-6 py-8">
