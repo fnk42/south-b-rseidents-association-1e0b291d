@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EstateIdRouteImport } from './routes/estate.$id'
+import { Route as AdminApprovalsRouteImport } from './routes/admin.approvals'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -28,34 +29,43 @@ const EstateIdRoute = EstateIdRouteImport.update({
   path: '/estate/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminApprovalsRoute = AdminApprovalsRouteImport.update({
+  id: '/admin/approvals',
+  path: '/admin/approvals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/estate/$id': typeof EstateIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/estate/$id': typeof EstateIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/estate/$id': typeof EstateIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/estate/$id'
+  fullPaths: '/' | '/auth' | '/admin/approvals' | '/estate/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/estate/$id'
-  id: '__root__' | '/' | '/auth' | '/estate/$id'
+  to: '/' | '/auth' | '/admin/approvals' | '/estate/$id'
+  id: '__root__' | '/' | '/auth' | '/admin/approvals' | '/estate/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  AdminApprovalsRoute: typeof AdminApprovalsRoute
   EstateIdRoute: typeof EstateIdRoute
 }
 
@@ -82,12 +92,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EstateIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/approvals': {
+      id: '/admin/approvals'
+      path: '/admin/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AdminApprovalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  AdminApprovalsRoute: AdminApprovalsRoute,
   EstateIdRoute: EstateIdRoute,
 }
 export const routeTree = rootRouteImport
