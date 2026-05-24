@@ -360,7 +360,7 @@ function EditEstateForm({ estate, onCancel, onSaved }: { estate: Estate; onCance
   );
 }
 
-function CommitteeTab({ estateId, committee }: { estateId: string; committee: CommitteeMember[] }) {
+function CommitteeTab({ estateId, committee, canManage }: { estateId: string; committee: CommitteeMember[]; canManage: boolean }) {
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -411,9 +411,9 @@ function CommitteeTab({ estateId, committee }: { estateId: string; committee: Co
         <p className="text-sm mb-5" style={{ color: "#777" }}>
           Add the people leading this estate so residents can reach out.
         </p>
-        <PrimaryButton onClick={() => setAdding(true)}>
+        {canManage ? <PrimaryButton onClick={() => setAdding(true)}>
           <Plus size={16} /> Add First Member
-        </PrimaryButton>
+        </PrimaryButton> : <p className="text-xs text-muted-foreground">Sign in as a committee member of this estate to add details.</p>}
       </div>
     );
   }
@@ -424,7 +424,7 @@ function CommitteeTab({ estateId, committee }: { estateId: string; committee: Co
         <p className="text-sm max-w-xl" style={{ color: "#555" }}>
           Committee members managing this estate. Add as many or as few as needed.
         </p>
-        {!adding && (
+        {canManage && !adding && (
           <PrimaryButton onClick={() => setAdding(true)}>
             <Plus size={16} /> Add Member
           </PrimaryButton>
@@ -474,8 +474,8 @@ function CommitteeTab({ estateId, committee }: { estateId: string; committee: Co
                 ) : (
                   <MemberRow
                     member={m}
-                    onEdit={() => setEditingId(m.id)}
-                    onDelete={() => setConfirmDelete(m)}
+                    onEdit={canManage ? () => setEditingId(m.id) : undefined}
+                    onDelete={canManage ? () => setConfirmDelete(m) : undefined}
                   />
                 )}
               </li>
@@ -518,8 +518,8 @@ function MemberRow({
   onDelete,
 }: {
   member: CommitteeMember;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }) {
   const isChair = member.role === "Chairperson";
   const isViceChair = member.role === "Vice Chairperson";
@@ -562,14 +562,20 @@ function MemberRow({
           </div>
         )}
       </div>
-      <div className="flex items-center gap-1">
-        <IconButton onClick={onEdit} label="Edit">
-          <Pencil size={15} />
-        </IconButton>
-        <IconButton onClick={onDelete} label="Delete" destructive>
-          <Trash2 size={15} />
-        </IconButton>
-      </div>
+      {(onEdit || onDelete) && (
+        <div className="flex items-center gap-1">
+          {onEdit && (
+            <IconButton onClick={onEdit} label="Edit">
+              <Pencil size={15} />
+            </IconButton>
+          )}
+          {onDelete && (
+            <IconButton onClick={onDelete} label="Delete" destructive>
+              <Trash2 size={15} />
+            </IconButton>
+          )}
+        </div>
+      )}
     </div>
   );
 }
