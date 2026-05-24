@@ -24,7 +24,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ResidentsTab } from "@/components/estate/ResidentsTab";
-import { DemoBanner } from "@/components/DemoBanner";
+import { UserMenu } from "@/components/UserMenu";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/estate/$id")({
   head: () => ({
@@ -93,6 +94,8 @@ function EstatePage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { managesEstate } = useAuth();
+  const canManage = managesEstate(id);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["estate", id],
@@ -177,7 +180,7 @@ function EstatePage() {
               · {committee.length} committee {committee.length === 1 ? "member" : "members"}
             </p>
           </div>
-          {!editingEstate && (
+          {canManage && !editingEstate && (
             <button
               onClick={() => setEditingEstate(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-colors"
@@ -209,12 +212,13 @@ function EstatePage() {
       </div>
 
       {tab === "committee" ? (
-        <CommitteeTab estateId={id} committee={committee} />
+        <CommitteeTab estateId={id} committee={committee} canManage={canManage} />
       ) : (
         <ResidentsTab
           estateId={id}
           totalHouses={data.number_of_houses}
           onCountChange={setResidentCount}
+          canManage={canManage}
         />
       )}
     </Shell>
@@ -227,7 +231,6 @@ function EstatePage() {
         className="min-h-screen"
         style={{ backgroundColor: COLORS.bg, fontFamily: "'DM Sans', system-ui, sans-serif", color: "#1d1d1b" }}
       >
-        <DemoBanner compact />
         <header style={{ backgroundColor: COLORS.green, borderBottom: `3px solid ${COLORS.gold}` }}>
           <div className="max-w-5xl mx-auto px-6 py-5 flex items-center gap-4">
             <div
@@ -243,7 +246,7 @@ function EstatePage() {
             >
               SB
             </div>
-            <div className="text-white">
+            <div className="text-white flex-1">
               <p
                 className="font-semibold leading-tight"
                 style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
@@ -252,6 +255,7 @@ function EstatePage() {
               </p>
               <p className="text-xs text-white/70">Building community, one estate at a time</p>
             </div>
+            <UserMenu />
           </div>
         </header>
         <main className="max-w-5xl mx-auto px-6 py-8">
