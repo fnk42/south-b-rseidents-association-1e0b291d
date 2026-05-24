@@ -112,6 +112,7 @@ function EstatePage() {
 
   const [tab, setTab] = useState<"committee" | "residents">("committee");
   const [editingEstate, setEditingEstate] = useState(false);
+  const [residentCount, setResidentCount] = useState(0);
 
   if (isLoading) {
     return (
@@ -141,7 +142,6 @@ function EstatePage() {
   }
 
   const committee = data.committee_members ?? [];
-  const [residentCount, setResidentCount] = useState(0);
 
   const onEstateSaved = () => {
     setEditingEstate(false);
