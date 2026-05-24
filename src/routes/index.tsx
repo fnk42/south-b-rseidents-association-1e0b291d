@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { DemoBanner } from "@/components/DemoBanner";
+import { UserMenu } from "@/components/UserMenu";
+import { useAuth } from "@/hooks/useAuth";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,7 +63,7 @@ interface Estate {
   number_of_houses: number | null;
   registration_status: Status;
   committee_members: CommitteeMember[];
-  residents: { count: number }[];
+  resident_count: number;
 }
 
 const STATUSES: Status[] = ["Registered", "In Progress", "Not Registered"];
@@ -76,14 +77,22 @@ function statusColor(s: Status) {
 async function fetchEstates(): Promise<Estate[]> {
   const { data, error } = await supabase
     .from("estates")
-    .select("id, estate_name, number_of_houses, registration_status, committee_members(full_name, role), residents(count)")
+    .select("id, estate_name, number_of_houses, registration_status, committee_members(full_name, role)")
     .order("estate_name", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as unknown as Estate[];
+  const { data: counts } = await supabase.rpc("estate_resident_counts");
+  const countMap = new Map<string, number>(
+    (counts ?? []).map((c: { estate_id: string; resident_count: number }) => [c.estate_id, Number(c.resident_count)])
+  );
+  return (data ?? []).map((e) => ({
+    ...(e as unknown as Estate),
+    resident_count: countMap.get((e as { id: string }).id) ?? 0,
+  }));
 }
 
 function Index() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const { data: estates = [], isLoading } = useQuery({
     queryKey: ["estates"],
     queryFn: fetchEstates,
@@ -130,7 +139,6 @@ function Index() {
       className="min-h-screen flex flex-col"
       style={{ backgroundColor: COLORS.bg, fontFamily: "'DM Sans', system-ui, sans-serif", color: "#1d1d1b" }}
     >
-      <DemoBanner />
       {/* Header */}
       <header
         style={{
@@ -152,7 +160,7 @@ function Index() {
           >
             SB
           </div>
-          <div className="text-white">
+          <div className="text-white flex-1">
             <h1
               className="text-xl md:text-2xl font-semibold leading-tight"
               style={{ fontFamily: "'Source Serif 4', Georgia, serif" }}
@@ -161,6 +169,7 @@ function Index() {
             </h1>
             <p className="text-sm text-white/75">Building community, one estate at a time</p>
           </div>
+          <UserMenu />
         </div>
       </header>
 
@@ -209,7 +218,7 @@ function Index() {
                 />
               ))}
             </div>
-            <button
+            {isAdmin && <button
               onClick={() => setShowAdd((v) => !v)}
               className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full transition-colors self-start sm:self-auto"
               style={{
@@ -219,7 +228,7 @@ function Index() {
             >
               <Plus size={16} />
               {showAdd ? "Close" : "Add Estate"}
-            </button>
+            </button>}
           </section>
 
           {showAdd && (
@@ -250,7 +259,7 @@ function Index() {
               <ul>
                 {visible.map((e, i) => {
                   const chair = e.committee_members?.find((m) => m.role === "Chairperson");
-                  const residentCount = e.residents?.[0]?.count ?? 0;
+                  const residentCount = e.resident_count;
                   return (
                     <li
                       key={e.id}
@@ -301,7 +310,7 @@ function Index() {
                         <StatusBadge status={e.registration_status} />
                         <ChevronRight size={18} style={{ color: "#bbb" }} />
                       </Link>
-                      <button
+                      {isAdmin && <button
                         type="button"
                         aria-label={`Delete ${e.estate_name}`}
                         onClick={(ev) => {
@@ -313,7 +322,7 @@ function Index() {
                         style={{ color: COLORS.notRegistered }}
                       >
                         <Trash2 size={15} />
-                      </button>
+                      </button>}
                     </li>
                   );
                 })}
@@ -328,10 +337,6 @@ function Index() {
         style={{ color: "#888", borderTop: `1px solid ${COLORS.border}` }}
       >
         <div>© 2026 South B Residents Association · Nairobi, Kenya</div>
-        <div className="mt-2 max-w-2xl mx-auto px-6 text-xs" style={{ color: "#a09b8f" }}>
-          Demo build. All data is publicly visible for testing purposes. Production deployment
-          requires authentication and access controls per Kenya's Data Protection Act, 2019.
-        </div>
       </footer>
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>

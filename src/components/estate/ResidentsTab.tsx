@@ -60,15 +60,21 @@ export function ResidentsTab({
   estateId,
   totalHouses,
   onCountChange,
+  canManage,
 }: {
   estateId: string;
   totalHouses: number | null;
   onCountChange?: (count: number) => void;
+  canManage: boolean;
 }) {
   const qc = useQueryClient();
   const { data: residents = [], isLoading } = useQuery({
     queryKey: ["residents", estateId],
     queryFn: async () => {
+      if (!canManage) {
+        onCountChange?.(0);
+        return [];
+      }
       const { data, error } = await supabase
         .from("residents")
         .select("*")
@@ -80,6 +86,7 @@ export function ResidentsTab({
       onCountChange?.(list.length);
       return list;
     },
+    enabled: canManage,
   });
 
   const [search, setSearch] = useState("");
@@ -114,6 +121,29 @@ export function ResidentsTab({
       );
     });
   }, [residents, search]);
+
+  if (!canManage) {
+    return (
+      <div
+        className="p-12 text-center"
+        style={{ backgroundColor: "white", border: `1px solid ${COLORS.border}`, borderRadius: 14 }}
+      >
+        <div
+          className="mx-auto mb-4 flex items-center justify-center"
+          style={{ width: 64, height: 64, borderRadius: "50%", backgroundColor: `${COLORS.green}10`, color: COLORS.green }}
+        >
+          <Users size={28} />
+        </div>
+        <h3 className="text-lg font-semibold mb-1" style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: COLORS.green }}>
+          Resident data is private
+        </h3>
+        <p className="text-sm max-w-md mx-auto" style={{ color: "#777" }}>
+          Only approved committee members of this estate can view, add, or edit residents.
+          Sign in with your committee account to continue.
+        </p>
+      </div>
+    );
+  }
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
